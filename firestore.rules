@@ -1,0 +1,674 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAuthorizedEditor() {
+      return isVerifiedUser()
+        && request.auth.token.email is string
+        && request.auth.token.email.lower() in [
+          'piyathida.suriya@gmail.com',
+          'charinyapak9205@gmail.com'
+        ];
+    }
+
+    function isValidAgency(agency) {
+      return agency is map
+        && agency.keys().hasAll(['id', 'name'])
+        && agency.keys().hasOnly(['id', 'name', 'shortName'])
+        && agency.id is string
+        && agency.id.size() >= 1
+        && agency.id.size() <= 64
+        && agency.name is string
+        && agency.name.size() >= 1
+        && agency.name.size() <= 200
+        && (!('shortName' in agency) || (agency.shortName is string && agency.shortName.size() <= 100));
+    }
+
+    function isValidInstallment(inst) {
+      return inst is map
+        && inst.keys().hasAll(['id', 'order', 'percentage'])
+        && inst.keys().hasOnly(['id', 'order', 'percentage'])
+        && inst.id is string
+        && inst.id.size() >= 1
+        && inst.id.size() <= 64
+        && inst.order is int
+        && inst.order >= 1
+        && inst.order <= 100
+        && inst.percentage is number
+        && inst.percentage >= 0
+        && inst.percentage <= 100;
+    }
+
+    function isValidReviewerItem(item) {
+      return item is map
+        && item.keys().hasAll(['name', 'position'])
+        && item.keys().hasOnly(['name', 'position'])
+        && item.name is string
+        && item.name.size() >= 1
+        && item.name.size() <= 150
+        && item.position is string
+        && item.position.size() <= 150;
+    }
+
+    function isValidTorInstallment(item) {
+      return item is map
+        && item.keys().hasAll([
+          'id', 'order', 'amount', 'status',
+          'funderReceivedDate', 'funderEvidenceId', 'funderEvidenceName',
+          'universityReceivedDate', 'universityEvidenceId', 'universityEvidenceName'
+        ])
+        && item.keys().hasOnly([
+          'id', 'order', 'amount', 'status',
+          'funderReceivedDate', 'funderEvidenceId', 'funderEvidenceName',
+          'universityReceivedDate', 'universityEvidenceId', 'universityEvidenceName'
+        ])
+        && item.id is string
+        && item.id.size() >= 1
+        && item.id.size() <= 64
+        && item.order is int
+        && item.order >= 1
+        && item.order <= 50
+        && item.amount is number
+        && item.amount >= 0
+        && item.amount <= 100000000000
+        && item.status in ['waiting', 'received_from_funder', 'received_from_university']
+        && item.funderReceivedDate is string
+        && item.funderReceivedDate.size() <= 20
+        && item.funderEvidenceId is string
+        && item.funderEvidenceId.size() <= 128
+        && item.funderEvidenceName is string
+        && item.funderEvidenceName.size() <= 255
+        && item.universityReceivedDate is string
+        && item.universityReceivedDate.size() <= 20
+        && item.universityEvidenceId is string
+        && item.universityEvidenceId.size() <= 128
+        && item.universityEvidenceName is string
+        && item.universityEvidenceName.size() <= 255;
+    }
+
+    function isValidDeliverableSummary(summary) {
+      return summary is map
+        && summary.keys().hasAll([
+          'count', 'latestItemTitle', 'latestStatus',
+          'nextGpvDueDate', 'nextPmRequestDate'
+        ])
+        && summary.keys().hasOnly([
+          'count', 'latestItemTitle', 'latestStatus',
+          'nextGpvDueDate', 'nextPmRequestDate'
+        ])
+        && summary.count is int
+        && summary.count >= 0
+        && summary.count <= 500
+        && summary.latestItemTitle is string
+        && summary.latestItemTitle.size() <= 400
+        && summary.latestStatus is string
+        && summary.latestStatus.size() <= 40
+        && summary.nextGpvDueDate is string
+        && summary.nextGpvDueDate.size() <= 20
+        && summary.nextPmRequestDate is string
+        && summary.nextPmRequestDate.size() <= 20;
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll([
+          'ownerId', 'fiscalYear', 'name', 'totalBudget',
+          'agencies', 'installments', 'preparer', 'reviewers',
+          'approver', 'version', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'fiscalYear', 'name', 'shortName', 'funderName', 'totalBudget',
+          'agencies', 'installments', 'preparer', 'preparerPosition',
+          'reviewers', 'reviewerItems', 'approver', 'approverPosition',
+          'version', 'createdAt', 'updatedAt',
+          'proposalStatus', 'requestedBudget', 'submittedDate',
+          'proposalEvidenceId', 'proposalEvidenceName',
+          'approvedBudget', 'torInstallments', 'scheduleStatus', 'extensionCount',
+          'extensionEvidenceId', 'extensionEvidenceName', 'deliverableSummary',
+          'projectStartDate', 'projectEndDate'
+        ])
+        && data.ownerId is string
+        && isValidId(data.ownerId)
+        && data.fiscalYear is int
+        && data.fiscalYear >= 2500
+        && data.fiscalYear <= 2700
+        && data.name is string
+        && data.name.size() >= 1
+        && data.name.size() <= 500
+        && (!('shortName' in data) || (data.shortName is string && data.shortName.size() <= 150))
+        && (!('funderName' in data) || (data.funderName is string && data.funderName.size() <= 300))
+        && data.totalBudget is number
+        && data.totalBudget >= 0
+        && data.totalBudget <= 100000000000
+        && data.agencies is list
+        && data.agencies.size() >= 1
+        && data.agencies.size() <= 30
+        && isValidAgency(data.agencies[0])
+        && data.installments is list
+        && data.installments.size() >= 1
+        && data.installments.size() <= 24
+        && isValidInstallment(data.installments[0])
+        && data.preparer is string
+        && data.preparer.size() >= 1
+        && data.preparer.size() <= 150
+        && (!('preparerPosition' in data) || (data.preparerPosition is string && data.preparerPosition.size() <= 150))
+        && data.reviewers is list
+        && data.reviewers.size() >= 1
+        && data.reviewers.size() <= 20
+        && data.reviewers[0] is string
+        && data.reviewers[0].size() >= 1
+        && data.reviewers[0].size() <= 150
+        && (!('reviewerItems' in data) || (data.reviewerItems is list && data.reviewerItems.size() >= 1 && data.reviewerItems.size() <= 20 && isValidReviewerItem(data.reviewerItems[0])))
+        && data.approver is string
+        && data.approver.size() >= 1
+        && data.approver.size() <= 150
+        && (!('approverPosition' in data) || (data.approverPosition is string && data.approverPosition.size() <= 150))
+        && data.version is int
+        && data.version >= 1
+        && data.version <= 100000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && (!('proposalStatus' in data) || data.proposalStatus in ['drafting', 'submitted', 'approved', 'rejected'])
+        && (!('requestedBudget' in data) || (data.requestedBudget is number && data.requestedBudget >= 0 && data.requestedBudget <= 100000000000))
+        && (!('submittedDate' in data) || (data.submittedDate is string && data.submittedDate.size() <= 20))
+        && (!('proposalEvidenceId' in data) || (data.proposalEvidenceId is string && data.proposalEvidenceId.size() <= 128))
+        && (!('proposalEvidenceName' in data) || (data.proposalEvidenceName is string && data.proposalEvidenceName.size() <= 255))
+        && (!('approvedBudget' in data) || (data.approvedBudget is number && data.approvedBudget >= 0 && data.approvedBudget <= 100000000000))
+        && (!('torInstallments' in data) || (data.torInstallments is list && data.torInstallments.size() <= 24 && (data.torInstallments.size() == 0 || isValidTorInstallment(data.torInstallments[0]))))
+        && (!('scheduleStatus' in data) || data.scheduleStatus in ['on_time', 'extended'])
+        && (!('extensionCount' in data) || (data.extensionCount is int && data.extensionCount >= 0 && data.extensionCount <= 100))
+        && (!('extensionEvidenceId' in data) || (data.extensionEvidenceId is string && data.extensionEvidenceId.size() <= 128))
+        && (!('extensionEvidenceName' in data) || (data.extensionEvidenceName is string && data.extensionEvidenceName.size() <= 255))
+        && (!('deliverableSummary' in data) || isValidDeliverableSummary(data.deliverableSummary))
+        && (!('projectStartDate' in data) || (data.projectStartDate is string && data.projectStartDate.size() <= 20))
+        && (!('projectEndDate' in data) || (data.projectEndDate is string && data.projectEndDate.size() <= 20));
+    }
+
+    function isEditStage1Action() {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+        'fiscalYear', 'name', 'shortName', 'funderName', 'requestedBudget',
+        'submittedDate', 'proposalStatus', 'proposalEvidenceId', 'proposalEvidenceName',
+        'approvedBudget', 'totalBudget', 'version', 'updatedAt'
+      ]);
+    }
+
+    function isEditTorReceiptsAction() {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+        'approvedBudget', 'totalBudget', 'torInstallments', 'version', 'updatedAt'
+      ]);
+    }
+
+    function isEditAllocationSetupAction() {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+        'fiscalYear', 'name', 'shortName', 'totalBudget', 'approvedBudget',
+        'agencies', 'installments', 'preparer', 'preparerPosition',
+        'reviewers', 'reviewerItems', 'approver', 'approverPosition',
+        'version', 'updatedAt'
+      ]);
+    }
+
+    function isEditScheduleStatusAction() {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+        'scheduleStatus', 'extensionCount', 'extensionEvidenceId',
+        'extensionEvidenceName', 'version', 'updatedAt'
+      ]);
+    }
+
+    function isEditDeliverableSummaryAction() {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+        'deliverableSummary', 'projectStartDate', 'projectEndDate', 'updatedAt'
+      ]);
+    }
+
+    function isBumpAllocationVersionAction() {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+        'version', 'updatedAt'
+      ]);
+    }
+
+    function isValidActivity(data, projectId) {
+      return data.keys().hasAll([
+          'projectId', 'ownerId', 'order', 'activityName',
+          'amounts', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'projectId', 'ownerId', 'order', 'activityName',
+          'amounts', 'createdAt', 'updatedAt'
+        ])
+        && data.projectId is string
+        && isValidId(data.projectId)
+        && data.projectId == projectId
+        && data.ownerId is string
+        && isValidId(data.ownerId)
+        && data.order is int
+        && data.order >= 1
+        && data.order <= 500
+        && data.activityName is string
+        && data.activityName.size() >= 1
+        && data.activityName.size() <= 400
+        && data.amounts is map
+        && data.amounts.size() <= 30
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWithdrawalItem(item) {
+      return item is map
+        && item.keys().hasAll([
+          'activityId', 'activityName', 'installmentId',
+          'installmentOrder', 'installmentPercentage', 'amount'
+        ])
+        && item.keys().hasOnly([
+          'activityId', 'activityName', 'installmentId',
+          'installmentOrder', 'installmentPercentage', 'amount'
+        ])
+        && item.activityId is string
+        && item.activityId.size() >= 1
+        && item.activityId.size() <= 128
+        && item.activityName is string
+        && item.activityName.size() >= 1
+        && item.activityName.size() <= 400
+        && item.installmentId is string
+        && item.installmentId.size() >= 1
+        && item.installmentId.size() <= 64
+        && item.installmentOrder is int
+        && item.installmentOrder >= 1
+        && item.installmentOrder <= 100
+        && item.installmentPercentage is number
+        && item.installmentPercentage >= 0
+        && item.installmentPercentage <= 100
+        && item.amount is number
+        && item.amount >= 0
+        && item.amount <= 100000000000;
+    }
+
+    function isValidWithdrawal(data, projectId) {
+      return data.keys().hasAll([
+          'projectId', 'ownerId', 'agencyId', 'agencyName', 'agencyShortName',
+          'requesterName', 'recipientEmail', 'note',
+          'attachmentName', 'attachmentMimeType', 'attachmentDataUrl',
+          'items', 'totalRequested', 'status', 'emailSent',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'projectId', 'ownerId', 'agencyId', 'agencyName', 'agencyShortName',
+          'requesterName', 'recipientEmail', 'note',
+          'attachmentName', 'attachmentMimeType', 'attachmentDataUrl', 'attachmentEvidenceId',
+          'items', 'totalRequested', 'status', 'emailSent',
+          'createdAt', 'updatedAt'
+        ])
+        && data.projectId is string
+        && isValidId(data.projectId)
+        && data.projectId == projectId
+        && data.ownerId is string
+        && isValidId(data.ownerId)
+        && data.agencyId is string
+        && data.agencyId.size() >= 1
+        && data.agencyId.size() <= 64
+        && data.agencyName is string
+        && data.agencyName.size() >= 1
+        && data.agencyName.size() <= 200
+        && data.agencyShortName is string
+        && data.agencyShortName.size() <= 100
+        && data.requesterName is string
+        && data.requesterName.size() >= 1
+        && data.requesterName.size() <= 150
+        && data.recipientEmail is string
+        && data.recipientEmail.size() >= 3
+        && data.recipientEmail.size() <= 200
+        && data.note is string
+        && data.note.size() <= 500
+        && data.attachmentName is string
+        && data.attachmentName.size() >= 1
+        && data.attachmentName.size() <= 255
+        && data.attachmentMimeType in ['application/pdf', 'image/jpeg', 'image/png']
+        && data.attachmentDataUrl is string
+        && data.attachmentDataUrl.size() <= 800000
+        && (!('attachmentEvidenceId' in data) || (data.attachmentEvidenceId is string && data.attachmentEvidenceId.size() <= 128))
+        && (
+          data.attachmentDataUrl.size() >= 1
+          || ('attachmentEvidenceId' in data && data.attachmentEvidenceId is string && data.attachmentEvidenceId.size() >= 1)
+        )
+        && data.items is list
+        && data.items.size() >= 1
+        && data.items.size() <= 100
+        && isValidWithdrawalItem(data.items[0])
+        && data.totalRequested is number
+        && data.totalRequested >= 0
+        && data.totalRequested <= 100000000000
+        && data.status in ['pending', 'inspected']
+        && data.emailSent is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidEvidence(data, projectId) {
+      return data.keys().hasAll([
+          'projectId', 'ownerId', 'category', 'fileName',
+          'mimeType', 'dataUrl', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'projectId', 'ownerId', 'category', 'fileName',
+          'mimeType', 'dataUrl', 'chunkCount', 'createdAt'
+        ])
+        && data.projectId is string
+        && isValidId(data.projectId)
+        && data.projectId == projectId
+        && data.ownerId is string
+        && isValidId(data.ownerId)
+        && data.category in ['tor_funder', 'tor_university', 'gpv_submit', 'extension', 'proposal_doc', 'withdrawal_doc']
+        && data.fileName is string
+        && data.fileName.size() >= 1
+        && data.fileName.size() <= 255
+        && data.mimeType in ['application/pdf', 'image/jpeg', 'image/png']
+        && data.dataUrl is string
+        && data.dataUrl.size() <= 800000
+        && (!('chunkCount' in data) || (data.chunkCount is int && data.chunkCount >= 0 && data.chunkCount <= 20))
+        && (
+          data.dataUrl.size() >= 1
+          || ('chunkCount' in data && data.chunkCount is int && data.chunkCount >= 1)
+        )
+        && data.createdAt is timestamp;
+    }
+
+    function isValidEvidenceChunk(data, projectId, evidenceId) {
+      return data.keys().hasAll([
+          'projectId', 'evidenceId', 'ownerId', 'index', 'data', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'projectId', 'evidenceId', 'ownerId', 'index', 'data', 'createdAt'
+        ])
+        && data.projectId is string
+        && isValidId(data.projectId)
+        && data.projectId == projectId
+        && data.evidenceId is string
+        && isValidId(data.evidenceId)
+        && data.evidenceId == evidenceId
+        && data.ownerId is string
+        && isValidId(data.ownerId)
+        && data.index is int
+        && data.index >= 0
+        && data.index < 20
+        && data.data is string
+        && data.data.size() >= 1
+        && data.data.size() <= 800000
+        && data.createdAt is timestamp;
+    }
+
+    function isValidArtifactItem(item) {
+      return item is map
+        && item.keys().hasAll(['id', 'name', 'quantity'])
+        && item.keys().hasOnly(['id', 'name', 'quantity'])
+        && item.id is string
+        && item.id.size() >= 1
+        && item.id.size() <= 64
+        && item.name is string
+        && item.name.size() >= 1
+        && item.name.size() <= 300
+        && item.quantity is string
+        && item.quantity.size() >= 1
+        && item.quantity.size() <= 60;
+    }
+
+    function isValidDeliverable(data) {
+      return data.keys().hasAll([
+          'projectId', 'ownerId', 'startDate', 'endDate', 'itemTitle',
+          'artifacts', 'gpvDueDate', 'pmRequestDate', 'status',
+          'gpvSubmittedDate', 'gpvEvidenceId', 'gpvEvidenceName',
+          'reminderSentAt', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'projectId', 'ownerId', 'startDate', 'endDate', 'itemTitle',
+          'artifacts', 'gpvDueDate', 'pmRequestDate', 'status',
+          'gpvSubmittedDate', 'gpvEvidenceId', 'gpvEvidenceName',
+          'reminderSentAt', 'createdAt', 'updatedAt'
+        ])
+        && data.projectId is string
+        && isValidId(data.projectId)
+        && data.ownerId is string
+        && isValidId(data.ownerId)
+        && data.startDate is string
+        && data.startDate.size() <= 20
+        && data.endDate is string
+        && data.endDate.size() <= 20
+        && data.itemTitle is string
+        && data.itemTitle.size() >= 1
+        && data.itemTitle.size() <= 400
+        && data.artifacts is list
+        && data.artifacts.size() >= 1
+        && data.artifacts.size() <= 30
+        && isValidArtifactItem(data.artifacts[0])
+        && data.gpvDueDate is string
+        && data.gpvDueDate.size() >= 1
+        && data.gpvDueDate.size() <= 20
+        && data.pmRequestDate is string
+        && data.pmRequestDate.size() >= 1
+        && data.pmRequestDate.size() <= 20
+        && data.status in ['notify_pm', 'following_pm', 'preparing_report', 'submitted_gpv']
+        && data.gpvSubmittedDate is string
+        && data.gpvSubmittedDate.size() <= 20
+        && data.gpvEvidenceId is string
+        && data.gpvEvidenceId.size() <= 128
+        && data.gpvEvidenceName is string
+        && data.gpvEvidenceName.size() <= 255
+        && data.reminderSentAt is string
+        && data.reminderSentAt.size() <= 40
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /projects/{projectId} {
+      allow get: if isAuthorizedEditor()
+        && isValidId(projectId);
+
+      allow list: if isAuthorizedEditor();
+
+      allow create: if isAuthorizedEditor()
+        && isValidId(projectId)
+        && isValidProject(incoming())
+        && incoming().ownerId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && incoming().version == 1;
+
+      allow update: if isAuthorizedEditor()
+        && isValidId(projectId)
+        && isValidProject(incoming())
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().version >= existing().version
+        && (
+          isEditStage1Action()
+          || isEditTorReceiptsAction()
+          || isEditAllocationSetupAction()
+          || isEditScheduleStatusAction()
+          || isEditDeliverableSummaryAction()
+          || isBumpAllocationVersionAction()
+        );
+
+      allow delete: if isAuthorizedEditor()
+        && isValidId(projectId);
+
+      match /activities/{activityId} {
+        allow get: if isAuthorizedEditor()
+          && isValidId(projectId)
+          && isValidId(activityId)
+          && exists(/databases/$(database)/documents/projects/$(projectId));
+
+        allow list: if isAuthorizedEditor()
+          && resource.data.projectId == projectId;
+
+        allow create: if isAuthorizedEditor()
+          && isValidId(projectId)
+          && isValidId(activityId)
+          && isValidActivity(incoming(), projectId)
+          && incoming().ownerId == request.auth.uid
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/projects/$(projectId));
+
+        allow update: if isAuthorizedEditor()
+          && isValidId(projectId)
+          && isValidId(activityId)
+          && isValidActivity(incoming(), projectId)
+          && incoming().ownerId == existing().ownerId
+          && incoming().projectId == existing().projectId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/projects/$(projectId))
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'order', 'activityName', 'amounts', 'updatedAt'
+          ]);
+
+        allow delete: if isAuthorizedEditor()
+          && isValidId(projectId)
+          && isValidId(activityId)
+          && exists(/databases/$(database)/documents/projects/$(projectId));
+      }
+
+      match /withdrawals/{withdrawalId} {
+        allow get: if isAuthorizedEditor()
+          && isValidId(projectId)
+          && isValidId(withdrawalId)
+          && exists(/databases/$(database)/documents/projects/$(projectId));
+
+        allow list: if isAuthorizedEditor()
+          && resource.data.projectId == projectId;
+
+        allow create: if isAuthorizedEditor()
+          && isValidId(projectId)
+          && isValidId(withdrawalId)
+          && isValidWithdrawal(incoming(), projectId)
+          && incoming().ownerId == request.auth.uid
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/projects/$(projectId));
+
+        allow update: if isAuthorizedEditor()
+          && isValidId(projectId)
+          && isValidId(withdrawalId)
+          && isValidWithdrawal(incoming(), projectId)
+          && incoming().ownerId == existing().ownerId
+          && incoming().projectId == existing().projectId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/projects/$(projectId))
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'status', 'emailSent', 'updatedAt'
+          ]);
+
+        allow delete: if isAuthorizedEditor()
+          && isValidId(projectId)
+          && isValidId(withdrawalId)
+          && exists(/databases/$(database)/documents/projects/$(projectId));
+      }
+
+      match /evidences/{evidenceId} {
+        allow get: if isAuthorizedEditor()
+          && isValidId(projectId)
+          && isValidId(evidenceId)
+          && exists(/databases/$(database)/documents/projects/$(projectId));
+
+        allow list: if isAuthorizedEditor()
+          && resource.data.projectId == projectId;
+
+        allow create: if isAuthorizedEditor()
+          && isValidId(projectId)
+          && isValidId(evidenceId)
+          && isValidEvidence(incoming(), projectId)
+          && incoming().ownerId == request.auth.uid
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/projects/$(projectId));
+
+        allow delete: if isAuthorizedEditor()
+          && isValidId(projectId)
+          && isValidId(evidenceId);
+
+        match /chunks/{chunkId} {
+          allow get: if isAuthorizedEditor()
+            && isValidId(projectId)
+            && isValidId(evidenceId)
+            && isValidId(chunkId)
+            && exists(/databases/$(database)/documents/projects/$(projectId)/evidences/$(evidenceId));
+
+          allow list: if isAuthorizedEditor()
+            && resource.data.projectId == projectId
+            && resource.data.evidenceId == evidenceId;
+
+          allow create: if isAuthorizedEditor()
+            && isValidId(projectId)
+            && isValidId(evidenceId)
+            && isValidId(chunkId)
+            && isValidEvidenceChunk(incoming(), projectId, evidenceId)
+            && incoming().ownerId == request.auth.uid
+            && incoming().createdAt == request.time
+            && exists(/databases/$(database)/documents/projects/$(projectId)/evidences/$(evidenceId));
+
+          allow delete: if isAuthorizedEditor()
+            && isValidId(projectId)
+            && isValidId(evidenceId)
+            && isValidId(chunkId);
+        }
+      }
+    }
+
+    match /deliverables/{deliverableId} {
+      allow get: if isAuthorizedEditor()
+        && isValidId(deliverableId);
+
+      allow list: if isAuthorizedEditor();
+
+      allow create: if isAuthorizedEditor()
+        && isValidId(deliverableId)
+        && isValidDeliverable(incoming())
+        && incoming().ownerId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/projects/$(incoming().projectId));
+
+      allow update: if isAuthorizedEditor()
+        && isValidId(deliverableId)
+        && isValidDeliverable(incoming())
+        && incoming().ownerId == existing().ownerId
+        && incoming().projectId == existing().projectId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'startDate', 'endDate', 'itemTitle', 'artifacts',
+            'gpvDueDate', 'pmRequestDate', 'status',
+            'gpvSubmittedDate', 'gpvEvidenceId', 'gpvEvidenceName',
+            'reminderSentAt', 'updatedAt'
+          ])
+        );
+
+      allow delete: if isAuthorizedEditor()
+        && isValidId(deliverableId);
+    }
+  }
+}

@@ -1,0 +1,563 @@
+{
+  "entities": {
+    "BudgetProject": {
+      "title": "BudgetProject",
+      "description": "Main project lifecycle record supporting Stage 1 pre-approval proposals, Stage 2 TOR budget receipts, budget allocations, schedule status, and deliverable summary.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the creator.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fiscalYear": {
+          "type": "integer",
+          "description": "Thai Buddhist Era fiscal year (e.g. 2569)."
+        },
+        "name": {
+          "type": "string",
+          "description": "Full project title.",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "shortName": {
+          "type": "string",
+          "description": "Short project name / abbreviation.",
+          "maxLength": 150
+        },
+        "funderName": {
+          "type": "string",
+          "description": "Funding source / grantor agency name.",
+          "maxLength": 300
+        },
+        "proposalStatus": {
+          "type": "string",
+          "description": "Stage 1 proposal status.",
+          "enum": ["drafting", "submitted", "approved", "rejected"]
+        },
+        "requestedBudget": {
+          "type": "number",
+          "description": "Requested proposal budget in THB."
+        },
+        "submittedDate": {
+          "type": "string",
+          "description": "Proposal submission date (YYYY-MM-DD).",
+          "maxLength": 20
+        },
+        "proposalEvidenceId": {
+          "type": "string",
+          "description": "Evidence document ID for proposal submission letter.",
+          "maxLength": 128
+        },
+        "proposalEvidenceName": {
+          "type": "string",
+          "description": "Filename of uploaded proposal submission letter.",
+          "maxLength": 255
+        },
+        "approvedBudget": {
+          "type": "number",
+          "description": "Approved budget in THB when proposalStatus is approved."
+        },
+        "torInstallments": {
+          "type": "array",
+          "description": "TOR budget receipt installments and status/evidence metadata."
+        },
+        "scheduleStatus": {
+          "type": "string",
+          "description": "Stage 2 project schedule status.",
+          "enum": ["on_time", "extended"]
+        },
+        "extensionCount": {
+          "type": "integer",
+          "description": "Number of time extensions if scheduleStatus is extended."
+        },
+        "extensionEvidenceId": {
+          "type": "string",
+          "description": "Evidence document ID for time extension approval.",
+          "maxLength": 128
+        },
+        "extensionEvidenceName": {
+          "type": "string",
+          "description": "Filename of time extension approval document.",
+          "maxLength": 255
+        },
+        "deliverableSummary": {
+          "type": "object",
+          "description": "Synced summary of deliverables for dashboard display."
+        },
+        "projectStartDate": {
+          "type": "string",
+          "description": "Overall project implementation start date (YYYY-MM-DD).",
+          "maxLength": 20
+        },
+        "projectEndDate": {
+          "type": "string",
+          "description": "Overall project implementation end date (YYYY-MM-DD).",
+          "maxLength": 20
+        },
+        "totalBudget": {
+          "type": "number",
+          "description": "Active project budget in THB used for allocation."
+        },
+        "agencies": {
+          "type": "array",
+          "description": "Ordered list of allocated agencies/networks ({ id, name, shortName })."
+        },
+        "installments": {
+          "type": "array",
+          "description": "Ordered list of budget allocation installment percentages."
+        },
+        "preparer": {
+          "type": "string",
+          "description": "Name of the budget preparer.",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "preparerPosition": {
+          "type": "string",
+          "description": "Position of the preparer.",
+          "maxLength": 150
+        },
+        "reviewers": {
+          "type": "array",
+          "description": "Ordered list of reviewers names."
+        },
+        "reviewerItems": {
+          "type": "array",
+          "description": "Ordered list of reviewers with name and position."
+        },
+        "approver": {
+          "type": "string",
+          "description": "Name of the approver.",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "approverPosition": {
+          "type": "string",
+          "description": "Position of the approver.",
+          "maxLength": 150
+        },
+        "version": {
+          "type": "integer",
+          "description": "Document version number."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "fiscalYear",
+        "name",
+        "totalBudget",
+        "agencies",
+        "installments",
+        "preparer",
+        "reviewers",
+        "approver",
+        "version",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BudgetActivity": {
+      "title": "BudgetActivity",
+      "description": "Activity line item under a budget project storing allocated amounts per agency.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "order": {
+          "type": "integer"
+        },
+        "activityName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 400
+        },
+        "amounts": {
+          "type": "object"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "projectId",
+        "ownerId",
+        "order",
+        "activityName",
+        "amounts",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BudgetWithdrawal": {
+      "title": "BudgetWithdrawal",
+      "description": "Withdrawal request submitted by an allocated agency.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "agencyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "agencyName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "agencyShortName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "requesterName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "recipientEmail": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "attachmentName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "attachmentMimeType": {
+          "type": "string",
+          "enum": ["application/pdf", "image/jpeg", "image/png"]
+        },
+        "attachmentDataUrl": {
+          "type": "string",
+          "maxLength": 800000
+        },
+        "attachmentEvidenceId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "items": {
+          "type": "array"
+        },
+        "totalRequested": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "inspected"]
+        },
+        "emailSent": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "projectId",
+        "ownerId",
+        "agencyId",
+        "agencyName",
+        "agencyShortName",
+        "requesterName",
+        "recipientEmail",
+        "note",
+        "attachmentName",
+        "attachmentMimeType",
+        "attachmentDataUrl",
+        "items",
+        "totalRequested",
+        "status",
+        "emailSent",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ProjectDeliverable": {
+      "title": "ProjectDeliverable",
+      "description": "Stage 2 deliverable milestone tracking implementation period, artifacts with quantity, PM & GPV deadlines, status, and GPV submission evidence.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "startDate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "endDate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "itemTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 400
+        },
+        "artifacts": {
+          "type": "array",
+          "description": "List of deliverable artifacts with name and quantity."
+        },
+        "gpvDueDate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "pmRequestDate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "notify_pm",
+            "following_pm",
+            "preparing_report",
+            "submitted_gpv"
+          ]
+        },
+        "gpvSubmittedDate": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "gpvEvidenceId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "gpvEvidenceName": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "reminderSentAt": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "projectId",
+        "ownerId",
+        "startDate",
+        "endDate",
+        "itemTitle",
+        "artifacts",
+        "gpvDueDate",
+        "pmRequestDate",
+        "status",
+        "gpvSubmittedDate",
+        "gpvEvidenceId",
+        "gpvEvidenceName",
+        "reminderSentAt",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ProjectEvidence": {
+      "title": "ProjectEvidence",
+      "description": "Uploaded supporting document (TOR receipt, GPV submission, or time extension approval) stored separately to respect document size limits.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "tor_funder",
+            "tor_university",
+            "gpv_submit",
+            "extension",
+            "proposal_doc",
+            "withdrawal_doc"
+          ]
+        },
+        "fileName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "mimeType": {
+          "type": "string",
+          "enum": ["application/pdf", "image/jpeg", "image/png"]
+        },
+        "dataUrl": {
+          "type": "string",
+          "maxLength": 800000
+        },
+        "chunkCount": {
+          "type": "integer",
+          "description": "Number of chunks in chunks subcollection when file exceeds single-doc threshold."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "projectId",
+        "ownerId",
+        "category",
+        "fileName",
+        "mimeType",
+        "dataUrl",
+        "createdAt"
+      ]
+    },
+    "ProjectEvidenceChunk": {
+      "title": "ProjectEvidenceChunk",
+      "description": "Chunked base64 slice for uploaded files up to 5 MB.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "evidenceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "index": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 800000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "projectId",
+        "evidenceId",
+        "ownerId",
+        "index",
+        "data",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "schema": {
+        "$ref": "#/entities/BudgetProject"
+      },
+      "description": "Top-level collection of projects managed across Stage 1 and Stage 2."
+    },
+    "/projects/{projectId}/activities/{activityId}": {
+      "schema": {
+        "$ref": "#/entities/BudgetActivity"
+      },
+      "description": "Subcollection of budget allocation activity rows."
+    },
+    "/projects/{projectId}/withdrawals/{withdrawalId}": {
+      "schema": {
+        "$ref": "#/entities/BudgetWithdrawal"
+      },
+      "description": "Subcollection of budget withdrawal requests."
+    },
+    "/projects/{projectId}/evidences/{evidenceId}": {
+      "schema": {
+        "$ref": "#/entities/ProjectEvidence"
+      },
+      "description": "Subcollection of uploaded evidence documents."
+    },
+    "/projects/{projectId}/evidences/{evidenceId}/chunks/{chunkId}": {
+      "schema": {
+        "$ref": "#/entities/ProjectEvidenceChunk"
+      },
+      "description": "Subcollection of chunked data slices for files up to 5 MB."
+    },
+    "/deliverables/{deliverableId}": {
+      "schema": {
+        "$ref": "#/entities/ProjectDeliverable"
+      },
+      "description": "Top-level collection of project deliverable milestones for cross-project deadline tracking and 20-day reminders."
+    }
+  }
+}
